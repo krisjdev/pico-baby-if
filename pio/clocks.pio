@@ -1,0 +1,61 @@
+; "clocks.pio"
+; Generates a clock signal given a frequency, and generates interrupt
+; requests depending on the state of a jump pin.
+;
+; IRQ 0 - clock has finished its pulse
+; IRQ 1 - jump pin is high
+;
+; In the context of the Manchester Baby, this will generate the
+; required clock signal for it to function, whilst also monitoring
+; how it's internal clock is progressing - this is because of how
+; its clock is implemented in RTL. 
+
+
+.define public GENERATED_CLOCK_PIN 15
+.define public BABY_CLOCK_PIN 14
+
+.program clocks
+    pull
+    out y, 32   ; store txfifo value in y
+
+.wrap_target
+top:
+    mov x, y    ; move y into x to decrement
+    set pins, 1 ; 
+
+on_loop:
+    jmp x-- on_loop
+    mov x, y ; reset counter
+    set pins, 0
+
+off_loop:
+    jmp x-- off_loop
+    jmp pin baby_clk_high_set_irq
+    irq wait 0
+    jmp top
+
+baby_clk_high_set_irq:
+    irq wait 1
+
+.wrap
+
+
+% c-sdk {
+
+void clocks_program_init(PIO pio, uint sm, uint offset) {
+    pio_gpio_init(pio, GENERATED_CLOCK_PIN);
+    pio_gpio_init(pio, BABY_CLOCK_PIN);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, GENERATED_CLOCK_PIN, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, BABY_CLOCK_PIN, 1, false);
+    
+    gpio_pull_down(BABY_CLOCK_PIN);
+
+    pio_sm_config c = clocks_program_get_default_config(offset);
+    sm_config_set_set_pins(&c, GENERATED_CLOCK_PIN, 1);
+    sm_config_set_jmp_pin(&c, BABY_CLOCK_PIN);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+%}
