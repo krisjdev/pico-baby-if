@@ -11,9 +11,6 @@
 ; its clock is implemented in RTL. 
 
 
-.define public GENERATED_CLOCK_PIN 15
-.define public BABY_CLOCK_PIN 14
-
 .program clocks
     pull
     out y, 32   ; store txfifo value in y
@@ -42,18 +39,18 @@ baby_clk_high_set_irq:
 
 % c-sdk {
 
-void clocks_program_init(PIO pio, uint sm, uint offset) {
-    pio_gpio_init(pio, GENERATED_CLOCK_PIN);
-    pio_gpio_init(pio, BABY_CLOCK_PIN);
+void clocks_program_init(PIO pio, uint sm, uint offset, uint generated_clock_pin, uint baby_clock_pin) {
+    pio_gpio_init(pio, generated_clock_pin);
+    pio_gpio_init(pio, baby_clock_pin);
 
-    pio_sm_set_consecutive_pindirs(pio, sm, GENERATED_CLOCK_PIN, 1, true);
-    pio_sm_set_consecutive_pindirs(pio, sm, BABY_CLOCK_PIN, 1, false);
+    pio_sm_set_consecutive_pindirs(pio, sm, generated_clock_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, baby_clock_pin, 1, false);
     
-    gpio_pull_down(BABY_CLOCK_PIN);
+    gpio_pull_down(baby_clock_pin);
 
     pio_sm_config c = clocks_program_get_default_config(offset);
-    sm_config_set_set_pins(&c, GENERATED_CLOCK_PIN, 1);
-    sm_config_set_jmp_pin(&c, BABY_CLOCK_PIN);
+    sm_config_set_set_pins(&c, generated_clock_pin, 1);
+    sm_config_set_jmp_pin(&c, baby_clock_pin);
 
     pio_sm_init(pio, sm, offset, &c);
 }
