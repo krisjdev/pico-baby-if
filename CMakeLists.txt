@@ -39,10 +39,16 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(pico-baby-if pico-baby-if.c )
+add_executable(pico-baby-if pico-baby-if.c)
+
+target_sources(pico-baby-if PRIVATE babyif/babyif.c)
+
+add_compile_definitions(DEBUG)
 
 pico_set_program_name(pico-baby-if "pico-baby-if")
 pico_set_program_version(pico-baby-if "0.1")
+
+pico_generate_pio_header(pico-baby-if ${CMAKE_CURRENT_LIST_DIR}/pio/clocks.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(pico-baby-if 1)
@@ -56,7 +62,12 @@ target_link_libraries(pico-baby-if
 target_include_directories(pico-baby-if PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
-)
+  ${CMAKE_CURRENT_LIST_DIR}/babyif/
+  )
+
+target_link_libraries(pico-baby-if
+                      hardware_pio
+                      )
 
 pico_add_extra_outputs(pico-baby-if)
 
