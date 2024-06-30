@@ -1,0 +1,92 @@
+; "data_io.pio"
+; Intended to either read or write data onto any given 8 pins. This is configurable
+; by first pushing a configuration value into the state machine, which it will then
+; use to select which parts of the program it will execute.
+
+; Configuration values
+; 0 - write
+; 1 - read
+
+.program data_io
+; .side_set 1 opt
+
+    pull block
+    out y, 32
+
+.wrap_target
+
+top:
+    set pins 0
+    jmp !y write    ; if write(0), evals to (1), therefore jump to write?
+
+read:
+    ; fifos are 4 words deep, and can be joined
+    ; but we should be fine since baby is transfering max 64 bits
+    ; assuming 1 word = 32 bits
+    
+    ; debug
+    ; set pins 1 [31]
+    ; set pins 0 [31]
+    ; jmp read
+
+
+    set x, 7
+    irq wait 1
+    nop [20]
+read_loop:
+    in pins, 8
+    set pins 1
+    set pins 0
+    jmp x-- read_loop
+    push
+    jmp read
+
+write:
+    ; set pins 1 [2]
+    ; set pins 0 [2]
+    ; jmp write
+
+    pull
+    set x, 3
+    irq wait 1
+
+write_loop:
+    out pins, 8
+    set pins, 1
+    set pins, 0
+    jmp x-- write_loop
+    jmp write
+
+.wrap
+
+
+% c-sdk {
+
+void data_io_program_init(PIO pio, uint sm, uint offset, uint data_pin_base, uint data_pulse_pin, bool data_pins_are_output) {
+    
+    for (int i = 0; i < 8; i++) {
+        pio_gpio_init(pio, data_pin_base+i);
+    }
+
+    pio_gpio_init(pio, data_pulse_pin);
+
+    // if data_pins_are_output, set pin dirs to output
+    pio_sm_set_consecutive_pindirs(pio, sm, data_pin_base, 8, data_pins_are_output);
+
+    // this is always an output
+    pio_sm_set_consecutive_pindirs(pio, sm, data_pulse_pin, 1, true);
+
+    pio_sm_config c = data_io_program_get_default_config(offset);
+    sm_config_set_set_pins(&c, data_pulse_pin, 1);
+    sm_config_set_out_pins(&c, data_pin_base, 8);
+
+    if (data_pins_are_output) {
+        sm_config_set_out_shift(&c, false, false, 32);
+    }
+
+    pio_sm_init(pio, sm, offset, &c);
+
+}
+
+
+%}
