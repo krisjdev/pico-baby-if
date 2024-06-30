@@ -49,6 +49,7 @@ pico_set_program_name(pico-baby-if "pico-baby-if")
 pico_set_program_version(pico-baby-if "0.1")
 
 pico_generate_pio_header(pico-baby-if ${CMAKE_CURRENT_LIST_DIR}/pio/clocks.pio)
+pico_generate_pio_header(pico-baby-if ${CMAKE_CURRENT_LIST_DIR}/pio/data_io.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(pico-baby-if 1)
