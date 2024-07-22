@@ -3,6 +3,8 @@
 #include <clocks.pio.h>
 #include <data_io.pio.h>
 
+#include "pindefs.h"
+
 babyif* babyif_constructor() {
     return (babyif*) malloc(sizeof(babyif));
 }
