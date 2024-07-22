@@ -65,3 +65,16 @@ void babyif_clear_received_data_irq(babyif* babyif);
 
 void babyif_put_data_word(babyif* babyif, uint32_t word);
 uint32_t babyif_get_data_word(babyif* babyif);
+
+
+// misc
+bool babyif_get_stop_lamp();
+bool babyif_get_ram_read_write_intent();
+
+void babyif_set_exec_signal();
+void babyif_clear_exec_signal();
+bool babyif_get_exec_signal();
+
+void babyif_set_reset_signal();
+void babyif_clear_reset_signal();
+bool babyif_get_reset_signal();
