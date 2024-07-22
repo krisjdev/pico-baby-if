@@ -6,6 +6,17 @@
 #include "pindefs.h"
 
 babyif* babyif_constructor() {
+
+    gpio_init(GPIO_OUT_RESET_N);
+    gpio_init(GPIO_OUT_ALLOW_EXEC);
+    gpio_init(GPIO_IN_RW_INTENT);
+    gpio_init(GPIO_IN_STOP_LAMP);
+
+    gpio_set_dir(GPIO_OUT_RESET_N, GPIO_OUT);
+    gpio_set_dir(GPIO_OUT_ALLOW_EXEC, GPIO_OUT);
+    gpio_set_dir(GPIO_IN_RW_INTENT, GPIO_IN);
+    gpio_set_dir(GPIO_IN_STOP_LAMP, GPIO_IN);
+
     return (babyif*) malloc(sizeof(babyif));
 }
 
@@ -115,7 +126,6 @@ void babyif_clear_received_data_irq(babyif* babyif) {
 }
 
 void babyif_put_data_word(babyif* babyif, uint32_t word) {
-    // pio_sm_put_blocking(babyif->pio_data, SENDER_STATE_MACHINE, word);
 
     #ifdef DEBUG
         printf("[babyif_put_data_word] writing to fifo: %#10x\n", word);
@@ -131,6 +141,35 @@ uint32_t babyif_get_data_word(babyif* babyif) {
     #endif
 
     return data;
+}
 
-    // return pio_sm_get_blocking(babyif->pio_data, RECEIVER_STATE_MACHINE);
+
+bool inline babyif_get_stop_lamp() {
+    return gpio_get(GPIO_IN_STOP_LAMP);
+}
+
+bool inline babyif_get_ram_read_write_intent() {
+    return gpio_get(GPIO_IN_RW_INTENT);
+}
+
+void inline babyif_set_exec_signal() {
+    gpio_put(GPIO_OUT_ALLOW_EXEC, 1);
+}
+
+void inline babyif_clear_exec_signal() {
+    gpio_put(GPIO_OUT_ALLOW_EXEC, 0);
+}
+bool inline babyif_get_exec_signal() {
+    return gpio_get(GPIO_OUT_ALLOW_EXEC);
+}
+
+void inline babyif_set_reset_signal() {
+    gpio_put(GPIO_OUT_RESET_N, 0);
+}
+
+void inline babyif_clear_reset_signal() {
+    gpio_put(GPIO_OUT_RESET_N, 1);
+}
+bool inline babyif_get_reset_signal() {
+    return gpio_get(GPIO_OUT_RESET_N);
 }
