@@ -65,7 +65,7 @@ void babyif_clear_received_data_irq(babyif* babyif);
 
 void babyif_put_data_word(babyif* babyif, uint32_t word);
 uint32_t babyif_get_data_word(babyif* babyif);
-
+uint32_t babyif_get_data_word_gpio(babyif* babyif);
 
 // misc
 bool babyif_get_stop_lamp();

@@ -44,6 +44,7 @@ add_executable(pico-baby-if pico-baby-if.c)
 target_sources(pico-baby-if PRIVATE babyif/babyif.c)
 
 add_compile_definitions(DEBUG)
+add_compile_definitions(DO_NOT_USE_PIO_DATA_SM)
 
 pico_set_program_name(pico-baby-if "pico-baby-if")
 pico_set_program_version(pico-baby-if "0.1")

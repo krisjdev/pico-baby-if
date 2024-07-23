@@ -17,8 +17,10 @@ int main()
     babyif_init_pio_clock(bif);
     babyif_enable_pio_clock(bif);
 
-    babyif_init_pio_data(bif);
-    babyif_enable_pio_data(bif);
+    // BUG: disabled for now
+    // see https://github.com/krisjdev/pico-baby-if/issues/1
+    // babyif_init_pio_data(bif);
+    // babyif_enable_pio_data(bif);
 
     bool prev_clk_irq_0_val = false;
     bool prev_baby_clk_gpio_val = false;
@@ -42,20 +44,14 @@ int main()
 
         printf("[data] irq_read: %d, irq_write: %d\n", babyif_get_received_data_irq(bif), babyif_get_sent_data_irq(bif));
 
-
-        // printf("write sm pc: %d\n", pio_sm_get_pc(bif->pio_data, 1));
-
         // 00000000 00000000 00000000 00000000 
         // 10101010_11110000_10101010_11110000 -> AAF0AAF0
 
         // test if sending correct data by connecting to receiving pio
         // babyif_put_data_word(bif, 0b00001111000010100000111100001010);
         babyif_put_data_word(bif, 0x1234ABCD);
-        babyif_clear_sent_data_irq(bif);
-        
-        printf("rx word: %#10x", babyif_get_data_word(bif));
-
-        
+              
+        printf("got word: %#10x\n", babyif_get_data_word_gpio(bif));
 
             // 1      ->    0
         if (baby_clk_gpio_val > prev_baby_clk_gpio_val) {

@@ -17,6 +17,18 @@ babyif* babyif_constructor() {
     gpio_set_dir(GPIO_IN_RW_INTENT, GPIO_IN);
     gpio_set_dir(GPIO_IN_STOP_LAMP, GPIO_IN);
 
+
+    // see https://github.com/krisjdev/pico-baby-if/issues/1
+    // set data pins to input
+    for (int i = 0; i < 8; i++){
+        gpio_init(GPIO_IN_DATA_BASE_PIN+i);
+        gpio_set_dir(GPIO_IN_DATA_BASE_PIN+i, GPIO_IN);
+    }
+
+    // set pulse pin to output
+    gpio_init(GPIO_OUT_PTP_B_PULSE);
+    gpio_set_dir(GPIO_OUT_PTP_B_PULSE, GPIO_OUT);
+
     return (babyif*) malloc(sizeof(babyif));
 }
 
@@ -134,6 +146,7 @@ void babyif_put_data_word(babyif* babyif, uint32_t word) {
     pio_sm_put(babyif->pio_data, SENDER_STATE_MACHINE, word);
 }
 
+#ifndef DO_NOT_USE_PIO_DATA_SM
 uint32_t babyif_get_data_word(babyif* babyif) {
     uint32_t data = pio_sm_get_blocking(babyif->pio_data, RECEIVER_STATE_MACHINE);
     #ifdef DEBUG
@@ -142,7 +155,34 @@ uint32_t babyif_get_data_word(babyif* babyif) {
 
     return data;
 }
+#endif
 
+
+uint32_t babyif_get_data_word_gpio(babyif* babyif) {
+
+    uint32_t temp = 0;
+    gpio_put(GPIO_OUT_PTP_B_PULSE, false);
+
+    for (int i = 0; i < 4; i++){
+        for (int j = 0; j < 8; j++) {
+            // printf("%d ", gpio_get(GPIO_IN_DATA_BASE_PIN+j));
+            // shift *then* add, otherwise one bit will be missing
+            temp = temp << 1;
+            temp += gpio_get(GPIO_IN_DATA_BASE_PIN+j);
+        }
+        // printf("\t%#10x\n", temp);
+        
+
+        gpio_put(GPIO_OUT_PTP_B_PULSE, true);
+        gpio_put(GPIO_OUT_PTP_B_PULSE, false);
+    }
+
+    #ifdef DEBUG
+        printf("[babyif_get_data_word_gpio] got data: %#10x\n", temp);
+    #endif
+
+    return temp;
+}
 
 bool inline babyif_get_stop_lamp() {
     return gpio_get(GPIO_IN_STOP_LAMP);
