@@ -147,6 +147,7 @@ void babyif_put_data_word(babyif* babyif, uint32_t word) {
     #endif
 
     pio_sm_put(babyif->pio_data, SENDER_STATE_MACHINE, word);
+    pio_interrupt_clear(babyif->pio_data, SENT_DATA_IRQ_FLAG);
 }
 
 #ifndef DO_NOT_USE_PIO_DATA_RECEIVER_SM
