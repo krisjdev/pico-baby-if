@@ -17,6 +17,7 @@ babyif* babyif_constructor() {
     gpio_set_dir(GPIO_IN_RW_INTENT, GPIO_IN);
     gpio_set_dir(GPIO_IN_STOP_LAMP, GPIO_IN);
 
+    gpio_put(GPIO_OUT_RESET_N, true);
 
     // see https://github.com/krisjdev/pico-baby-if/issues/1
     // set data pins to input
@@ -92,9 +93,11 @@ void babyif_init_pio_data(babyif* babyif) {
         printf("[babyif_init_pio_data] loaded data_io program at %d\n", prog_offset);
     #endif
 
-    // init reciever state machine
-    data_io_program_init(babyif->pio_data, RECEIVER_STATE_MACHINE, prog_offset, GPIO_IN_DATA_BASE_PIN, GPIO_OUT_PTP_B_PULSE, false);
-    pio_sm_put(babyif->pio_data, RECEIVER_STATE_MACHINE, CONFIG_READ);
+    #ifndef DO_NOT_USE_PIO_DATA_RECEIVER_SM
+        // init reciever state machine
+        data_io_program_init(babyif->pio_data, RECEIVER_STATE_MACHINE, prog_offset, GPIO_IN_DATA_BASE_PIN, GPIO_OUT_PTP_B_PULSE, false);
+        pio_sm_put(babyif->pio_data, RECEIVER_STATE_MACHINE, CONFIG_READ);
+    #endif
 
     // init sender state machine
     data_io_program_init(babyif->pio_data, SENDER_STATE_MACHINE, prog_offset, GPIO_OUT_DATA_BASE_PIN, GPIO_OUT_PTP_A_PULSE, true);
@@ -146,7 +149,7 @@ void babyif_put_data_word(babyif* babyif, uint32_t word) {
     pio_sm_put(babyif->pio_data, SENDER_STATE_MACHINE, word);
 }
 
-#ifndef DO_NOT_USE_PIO_DATA_SM
+#ifndef DO_NOT_USE_PIO_DATA_RECEIVER_SM
 uint32_t babyif_get_data_word(babyif* babyif) {
     uint32_t data = pio_sm_get_blocking(babyif->pio_data, RECEIVER_STATE_MACHINE);
     #ifdef DEBUG
@@ -192,24 +195,24 @@ bool inline babyif_get_ram_read_write_intent() {
     return gpio_get(GPIO_IN_RW_INTENT);
 }
 
-void inline babyif_set_exec_signal() {
+void inline babyif_set_exec() {
     gpio_put(GPIO_OUT_ALLOW_EXEC, 1);
 }
 
-void inline babyif_clear_exec_signal() {
+void inline babyif_clear_exec() {
     gpio_put(GPIO_OUT_ALLOW_EXEC, 0);
 }
-bool inline babyif_get_exec_signal() {
+bool inline babyif_get_exec() {
     return gpio_get(GPIO_OUT_ALLOW_EXEC);
 }
 
-void inline babyif_set_reset_signal() {
+void inline babyif_set_reset() {
     gpio_put(GPIO_OUT_RESET_N, 0);
 }
 
-void inline babyif_clear_reset_signal() {
+void inline babyif_clear_reset() {
     gpio_put(GPIO_OUT_RESET_N, 1);
 }
-bool inline babyif_get_reset_signal() {
+bool inline babyif_get_reset() {
     return gpio_get(GPIO_OUT_RESET_N);
 }
