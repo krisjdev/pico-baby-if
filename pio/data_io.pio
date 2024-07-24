@@ -52,8 +52,8 @@ write:
 
 write_loop:
     out pins, 8
-    set pins, 1
-    set pins, 0
+    set pins, 1 [15] ; delaying so that it is visible on logic analyser
+    set pins, 0 [15]
     jmp x-- write_loop
     jmp write
 
