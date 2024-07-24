@@ -178,6 +178,7 @@ uint32_t babyif_get_data_word_gpio(babyif* babyif) {
         
 
         gpio_put(GPIO_OUT_PTP_B_PULSE, true);
+        sleep_ms(1);
         gpio_put(GPIO_OUT_PTP_B_PULSE, false);
     }
 
