@@ -71,10 +71,10 @@ uint32_t babyif_get_data_word_gpio(babyif* babyif);
 bool babyif_get_stop_lamp();
 bool babyif_get_ram_read_write_intent();
 
-void babyif_set_exec_signal();
-void babyif_clear_exec_signal();
-bool babyif_get_exec_signal();
+void babyif_set_exec();
+void babyif_clear_exec();
+bool babyif_get_exec();
 
-void babyif_set_reset_signal();
-void babyif_clear_reset_signal();
-bool babyif_get_reset_signal();
+void babyif_set_reset();
+void babyif_clear_reset();
+bool babyif_get_reset();
