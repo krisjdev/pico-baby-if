@@ -41,6 +41,11 @@ void babyif_init(babyif* babyif, PIO pio_clk, PIO pio_data, uint clk_freq) {
     babyif->pio_clk = pio_clk;
     babyif->pio_data = pio_data;
     babyif->clk_freq = clk_freq;
+
+    // zero out memory
+    for (int i = 0; i < MEMORY_MAXIMUM_SIZE; i++) {
+        babyif->memory[i] = 0;
+    }
 }
 
 void babyif_init_pio_clock(babyif* babyif) {
