@@ -16,7 +16,9 @@
 
 #define SENDER_STATE_MACHINE 1
 #define RECEIVER_STATE_MACHINE 0
- 
+
+// 2^5 -- baby has 5 address bits
+const uint32_t MEMORY_MAXIMUM_SIZE = 1 << 5;
 
 typedef struct babyif_struct {
     PIO pio_clk;
@@ -24,6 +26,7 @@ typedef struct babyif_struct {
     uint clk_freq;
     uint generated_clock_pin;
     uint baby_clock_pin;
+    uint32_t memory[MEMORY_MAXIMUM_SIZE];
 } babyif;
 
 
@@ -78,3 +81,9 @@ bool babyif_get_exec();
 void babyif_set_reset();
 void babyif_clear_reset();
 bool babyif_get_reset();
+
+// memory functions
+void babyif_memory_clear(babyif* babyif);
+uint32_t babyif_memory_read(babyif* babyif);
+void babyif_memory_write(babyif* babyif);
+void babyif_memory_load(babyif* babyif, int *program_array, int program_size);
