@@ -4,6 +4,7 @@
 #include <data_io.pio.h>
 
 #include "pindefs.h"
+#include "program.c"
 
 babyif* babyif_constructor() {
 
@@ -42,10 +43,7 @@ void babyif_init(babyif* babyif, PIO pio_clk, PIO pio_data, uint clk_freq) {
     babyif->pio_data = pio_data;
     babyif->clk_freq = clk_freq;
 
-    // zero out memory
-    for (int i = 0; i < MEMORY_MAXIMUM_SIZE; i++) {
-        babyif->memory[i] = 0;
-    }
+    babyif->memory = program;
 }
 
 void babyif_init_pio_clock(babyif* babyif) {
@@ -222,4 +220,34 @@ void inline babyif_clear_reset() {
 }
 bool inline babyif_get_reset() {
     return gpio_get(GPIO_OUT_RESET_N);
+}
+
+uint32_t babyif_memory_read(babyif* babyif, uint32_t address) {
+
+    if (address >= PROGRAM_SIZE-1) {
+        printf("[babyif_memory_read] attempted to access address out of bounds: %#10x but PROGRAM_SIZE=%#10x", address, PROGRAM_SIZE);
+        return NULL;
+    }
+
+    #ifdef DEBUG
+        printf("[babyif_memory_read] accessing memory %#10x, returning %#10x", address, babyif->memory[address]);
+    #endif
+
+    return babyif->memory[address];
+    
+}
+
+void babyif_memory_write(babyif* babyif, uint32_t address, uint32_t data) {
+
+    if (address >= PROGRAM_SIZE-1) {
+        printf("[babyif_memory_write] attempted to access address out of bounds: %#10x but PROGRAM_SIZE=%#10x", address, PROGRAM_SIZE);
+        return NULL;
+    }
+
+    #ifdef DEBUG
+        printf("[babyif_memory_write] writing %#10x to %#10x", data, address);
+    #endif
+
+    babyif->memory[address] = data;
+
 }
