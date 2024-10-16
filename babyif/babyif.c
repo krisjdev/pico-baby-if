@@ -4,8 +4,13 @@
 #include <data_io.pio.h>
 
 #include "pindefs.h"
-#include "program.c"
+#include "../program.c"
 
+
+
+
+#ifndef DO_NOT_USE_BIF_SM
+#error "Not implemented"
 babyif* babyif_constructor() {
 
     gpio_init(GPIO_OUT_RESET_N);
@@ -53,6 +58,7 @@ void babyif_init_pio_clock(babyif* babyif) {
         printf("[babyif_init_pio_clock] loaded clock program at %d\n", prog_offset);
     #endif
 
+    
     clocks_program_init(babyif->pio_clk, 0, prog_offset, GPIO_OUT_GENERATED_CLOCK_PIN, GPIO_IN_BABY_CLOCK_PIN);
 
     // calculation taken from raspbery pi's blinking pio example
@@ -201,13 +207,16 @@ bool inline babyif_get_ram_read_write_intent() {
 }
 
 void inline babyif_set_exec() {
+    /* Allow execution */
     gpio_put(GPIO_OUT_ALLOW_EXEC, 1);
 }
 
 void inline babyif_clear_exec() {
+    /* Disallow execution */
     gpio_put(GPIO_OUT_ALLOW_EXEC, 0);
 }
 bool inline babyif_get_exec() {
+    /* Get exec pin state */
     return gpio_get(GPIO_OUT_ALLOW_EXEC);
 }
 
@@ -251,3 +260,20 @@ void babyif_memory_write(babyif* babyif, uint32_t address, uint32_t data) {
     babyif->memory[address] = data;
 
 }
+
+void babyif_clock_cycles(babyif* babyif, int clock_cycles) {
+
+    for (int i = 0; i < clock_cycles; i++) {
+        # ifdef DEBUG
+            printf("[babyif_clock_cycles] clock cycle %d", i);
+        #endif
+
+        while (!babyif_get_generated_clock_irq(babyif)) {};
+        babyif_clear_generated_clock_irq(babyif);
+
+        #ifdef DEBUG
+            printf(" done\n");
+        #endif
+    }
+}
+#endif

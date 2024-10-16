@@ -5,6 +5,10 @@
 #include <hardware/pio.h>
 #include "pico/stdlib.h"
 
+
+
+#ifndef DO_NOT_USE_BIF_SM
+#error "Not implemented"
 #define GENERATED_CLOCK_IRQ_FLAG 0
 #define BABY_CLOCK_IRQ_FLAG 1
 
@@ -87,3 +91,6 @@ bool babyif_get_reset();
 // void babyif_memory_load(babyif* babyif, int *program_array, int program_size);
 uint32_t babyif_memory_read(babyif* babyif, uint32_t address);
 void babyif_memory_write(babyif* babyif, uint32_t address, uint32_t data);
+
+void babyif_clock_cycles(babyif* babyif, int clock_cycles);
+#endif
