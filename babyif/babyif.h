@@ -5,6 +5,17 @@
 #include <hardware/pio.h>
 #include "pico/stdlib.h"
 
+typedef struct {
+    uint32_t address;
+    uint32_t data;
+} read_packet;
+
+void babyif_init_gpio();
+void babyif_pulse_clock(uint32_t period);
+read_packet babyif_read_data();
+void babytif_write_data(uint32_t data);
+
+void _pulse_control_line(bool pulse_read_line);
 
 
 #ifndef DO_NOT_USE_BIF_SM

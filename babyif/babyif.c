@@ -7,6 +7,116 @@
 #include "../program.c"
 
 
+void babyif_init_gpio() {
+    gpio_init(GPIO_OUT_PTP_A_PULSE);
+    gpio_init(GPIO_OUT_PTP_B_PULSE);
+    gpio_init(GPIO_OUT_CLOCK);
+    gpio_init(GPIO_IN_RW_INTENT);
+    gpio_init(GPIO_OUT_RESET_N);
+    gpio_init(GPIO_IN_STOP_LAMP);
+
+    gpio_set_dir(GPIO_OUT_PTP_A_PULSE, GPIO_OUT);
+    gpio_set_dir(GPIO_OUT_PTP_B_PULSE, GPIO_OUT);
+    gpio_set_dir(GPIO_OUT_CLOCK, GPIO_OUT);
+    gpio_set_dir(GPIO_OUT_RESET_N, GPIO_OUT);
+
+    gpio_set_dir(GPIO_IN_RW_INTENT, GPIO_IN);
+    gpio_set_dir(GPIO_IN_STOP_LAMP, GPIO_IN);
+
+    // drive outputs low immediately
+    gpio_put(GPIO_OUT_PTP_A_PULSE, false);
+    gpio_put(GPIO_OUT_PTP_B_PULSE, false);
+    gpio_put(GPIO_OUT_CLOCK, false);
+    gpio_put(GPIO_OUT_RESET_N, false);
+
+    for (int i = 0; i < 8; i++){
+        gpio_init(GPIO_IN_DATA_BASE_PIN+i);
+        gpio_init(GPIO_OUT_DATA_BASE_PIN+i);
+
+        gpio_set_dir(GPIO_IN_DATA_BASE_PIN+i, GPIO_IN);
+        gpio_set_dir(GPIO_OUT_DATA_BASE_PIN+i, GPIO_OUT);
+
+        gpio_put(GPIO_OUT_DATA_BASE_PIN+i, false);
+    }
+
+    #ifdef BIF_DEBUG
+        printf("[babyif_init_gpio] finished setting up gpio pins\n");
+    #endif
+}
+
+
+void babyif_pulse_clock(uint32_t period) {
+    gpio_put(GPIO_OUT_CLOCK, true);
+    sleep_ms(period/2);
+    gpio_put(GPIO_OUT_CLOCK, false);
+    sleep_ms(period/2);
+    
+    #ifdef BIF_DEBUG
+        printf("[babyif_pulse_clock] finished pulsing clock for %ims\n", period);
+    #endif
+}
+
+void _pulse_control_line(bool pulse_read_line) {
+
+    gpio_put(pulse_read_line ? GPIO_OUT_PTP_B_PULSE : GPIO_OUT_PTP_A_PULSE, true);
+    sleep_ms(5);
+    gpio_put(pulse_read_line ? GPIO_OUT_PTP_B_PULSE : GPIO_OUT_PTP_A_PULSE, false);
+    sleep_ms(5);
+
+    #ifdef BIF_DEBUG
+        printf("[_pulse_control_line] pulsed %s control line\n", pulse_read_line ? "read (ptp_b) " : "write (ptp_a) ");
+    #endif
+};
+
+
+#define INPUT_MASK(x) ((x & 0x3fc) >> 2)
+#define OUTPUT_MASK(x) ((x & 0x3fc00) >> 10)
+
+read_packet babyif_read_data() {
+    read_packet packet;
+
+    // NOTE: reset modules on each read? shouldn't affect the data...
+    // for now we'll assume it has been previously reset and is in a good state
+
+    //                  GPIO PINS
+    // 0b 0000 0000 0000 0000 0000 0000 0000 0000
+    //                               ^--------^ 0x3FC   -> input mask      
+    //                     ^--------^           0x3FC00 -> output mask
+
+    uint32_t gpio_all = gpio_get_all();
+
+    packet.address = 0;
+    packet.data = 0;
+
+    for (int i = 0; i < 4; i++) {
+        #ifdef BIF_DEBUG
+            printf("[babyif_read_data] gpio state: %#10x\n", INPUT_MASK(gpio_all));
+        #endif
+
+        packet.address = (packet.address << 8) + INPUT_MASK(gpio_all);
+        _pulse_control_line(true);
+    }
+
+    #ifdef BIF_DEBUG
+        printf("[babyif_read_data] address final value: %#10x\n", packet.address);
+    #endif
+
+
+    for (int i = 0; i < 4; i++) {
+        #ifdef BIF_DEBUG
+            printf("[babyif_read_data] gpio state: %#10x\n", INPUT_MASK(gpio_all));
+        #endif
+
+        packet.data = (packet.data << 8) + INPUT_MASK(gpio_all);
+        _pulse_control_line(true);
+    }
+
+    #ifdef BIF_DEBUG
+        printf("[babyif_read_data] data final value: %#10x\n", packet.data);
+    #endif
+
+    return packet;
+}
 
 
 #ifndef DO_NOT_USE_BIF_SM
