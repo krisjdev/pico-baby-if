@@ -1,10 +1,7 @@
-#include <babyif.h>
+#include <stdio.h>
 
-#include <clocks.pio.h>
-#include <data_io.pio.h>
-
+#include "babyif.h"
 #include "pindefs.h"
-#include "../program.c"
 
 
 void babyif_init_gpio() {

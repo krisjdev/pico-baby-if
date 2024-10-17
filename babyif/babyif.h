@@ -1,8 +1,4 @@
 #pragma once
-#include <stdio.h>
-#include <malloc.h>
-
-#include <hardware/pio.h>
 #include "pico/stdlib.h"
 
 typedef struct {
