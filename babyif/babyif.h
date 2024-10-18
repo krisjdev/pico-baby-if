@@ -1,17 +1,27 @@
 #pragma once
 #include "pico/stdlib.h"
+#include "pindefs.h"
+
+#define BABY_READ_INTENT 0
+#define BABY_WRITE_INTENT 1
 
 typedef struct {
     uint32_t address;
     uint32_t data;
 } read_packet;
 
-void babyif_init_gpio();
-void babyif_pulse_clock(uint32_t period);
-read_packet babyif_read_data();
-void babytif_write_data(uint32_t data);
+typedef enum {
+    READ__PTP_B = GPIO_OUT_PTP_B_PULSE,
+    WRITE__PTP_A = GPIO_OUT_PTP_A_PULSE,
+    RESET__PTP = GPIO_OUT_PTP_RESET_N
+} control_line_t;
 
-void _pulse_control_line(bool pulse_read_line);
+void babyif_init_gpio();
+void babyif_pulse_clock(uint32_t cycles);
+read_packet babyif_read_data();
+void babyif_write_data(uint32_t data);
+
+void _pulse_control_line(control_line_t line);
 
 
 #ifndef DO_NOT_USE_BIF_SM
