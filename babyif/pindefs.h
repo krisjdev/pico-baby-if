@@ -7,6 +7,7 @@
 // the reader controls ptp b
 #define GPIO_OUT_PTP_A_PULSE 18     // TX data to baby
 #define GPIO_OUT_PTP_B_PULSE 19     // RX data from baby
+#define GPIO_OUT_PTP_RESET_N 20
 #define GPIO_OUT_CLOCK 21
 #define GPIO_IN_RW_INTENT 22
 #define GPIO_OUT_RESET_N 26
