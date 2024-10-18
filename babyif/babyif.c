@@ -3,10 +3,12 @@
 #include "babyif.h"
 #include "pindefs.h"
 
+#define CLOCK_PERIOD_MS 50
 
 void babyif_init_gpio() {
     gpio_init(GPIO_OUT_PTP_A_PULSE);
     gpio_init(GPIO_OUT_PTP_B_PULSE);
+    gpio_init(GPIO_OUT_PTP_RESET_N);
     gpio_init(GPIO_OUT_CLOCK);
     gpio_init(GPIO_IN_RW_INTENT);
     gpio_init(GPIO_OUT_RESET_N);
@@ -14,6 +16,7 @@ void babyif_init_gpio() {
 
     gpio_set_dir(GPIO_OUT_PTP_A_PULSE, GPIO_OUT);
     gpio_set_dir(GPIO_OUT_PTP_B_PULSE, GPIO_OUT);
+    gpio_set_dir(GPIO_OUT_PTP_RESET_N, GPIO_OUT);
     gpio_set_dir(GPIO_OUT_CLOCK, GPIO_OUT);
     gpio_set_dir(GPIO_OUT_RESET_N, GPIO_OUT);
 
@@ -23,6 +26,7 @@ void babyif_init_gpio() {
     // drive outputs low immediately
     gpio_put(GPIO_OUT_PTP_A_PULSE, false);
     gpio_put(GPIO_OUT_PTP_B_PULSE, false);
+    gpio_put(GPIO_OUT_PTP_RESET_N, false);
     gpio_put(GPIO_OUT_CLOCK, false);
     gpio_put(GPIO_OUT_RESET_N, false);
 
@@ -42,32 +46,38 @@ void babyif_init_gpio() {
 }
 
 
-void babyif_pulse_clock(uint32_t period) {
-    gpio_put(GPIO_OUT_CLOCK, true);
-    sleep_ms(period/2);
-    gpio_put(GPIO_OUT_CLOCK, false);
-    sleep_ms(period/2);
+void babyif_pulse_clock(uint32_t cycles) {
     
-    #ifdef BIF_DEBUG
-        printf("[babyif_pulse_clock] finished pulsing clock for %ims\n", period);
-    #endif
+    if (cycles == 0) return;
+
+    for (int i = 0; i < cycles; i++) {
+        gpio_put(GPIO_OUT_CLOCK, true);
+        sleep_ms(CLOCK_PERIOD_MS/2);
+        gpio_put(GPIO_OUT_CLOCK, false);
+        sleep_ms(CLOCK_PERIOD_MS/2);
+
+        #ifdef BIF_DEBUG
+            printf("[babyif_pulse_clock] finished pulsing clock for %ims\n", CLOCK_PERIOD_MS);
+        #endif
+    }
 }
 
-void _pulse_control_line(bool pulse_read_line) {
+void _pulse_control_line(control_line_t line) {
 
-    gpio_put(pulse_read_line ? GPIO_OUT_PTP_B_PULSE : GPIO_OUT_PTP_A_PULSE, true);
-    sleep_ms(5);
-    gpio_put(pulse_read_line ? GPIO_OUT_PTP_B_PULSE : GPIO_OUT_PTP_A_PULSE, false);
-    sleep_ms(5);
+    gpio_put(line, true);
+    sleep_ms(2);
+    gpio_put(line, false);
 
     #ifdef BIF_DEBUG
-        printf("[_pulse_control_line] pulsed %s control line\n", pulse_read_line ? "read (ptp_b) " : "write (ptp_a) ");
+        printf("[_pulse_control_line] pulsed pin %d\n", line);
     #endif
 };
 
 
-#define INPUT_MASK(x) ((x & 0x3fc) >> 2)
-#define OUTPUT_MASK(x) ((x & 0x3fc00) >> 10)
+#define INPUT_MASK(x) (x & 0x3fc)
+#define OUTPUT_MASK(x) (x & 0x3fc00)
+#define NORMALISE_INPUT_MASK(x) (INPUT_MASK(x) >> 2)
+#define NORMALISE_OUTPUT_MASK(x) (OUTPUT_MASK(x) >> 10)
 
 read_packet babyif_read_data() {
     read_packet packet;
@@ -86,35 +96,45 @@ read_packet babyif_read_data() {
     packet.data = 0;
 
     for (int i = 0; i < 4; i++) {
-        #ifdef BIF_DEBUG
-            printf("[babyif_read_data] gpio state: %#10x\n", INPUT_MASK(gpio_all));
-        #endif
-
-        packet.address = (packet.address << 8) + INPUT_MASK(gpio_all);
-        _pulse_control_line(true);
+        packet.address = (packet.address << 8) + NORMALISE_INPUT_MASK(gpio_all);
+        _pulse_control_line(READ__PTP_B);
     }
-
-    #ifdef BIF_DEBUG
-        printf("[babyif_read_data] address final value: %#10x\n", packet.address);
-    #endif
 
 
     for (int i = 0; i < 4; i++) {
-        #ifdef BIF_DEBUG
-            printf("[babyif_read_data] gpio state: %#10x\n", INPUT_MASK(gpio_all));
-        #endif
-
-        packet.data = (packet.data << 8) + INPUT_MASK(gpio_all);
-        _pulse_control_line(true);
+        packet.data = (packet.data << 8) + NORMALISE_INPUT_MASK(gpio_all);
+        _pulse_control_line(READ__PTP_B);
     }
 
     #ifdef BIF_DEBUG
-        printf("[babyif_read_data] data final value: %#10x\n", packet.data);
+        printf("[babyif_read_data] returning: address: %#10x, data: %#10x\n", packet.address, packet.data);
     #endif
 
     return packet;
 }
 
+
+void babyif_write_data(uint32_t data) {
+    uint8_t data_byte = 0;
+
+    for (int i = 0; i < 4; i++) {
+        data_byte = (data & (0xFF << 8 * i)) >> 8 * i;
+
+        // TODO: is there a way to use gpio_set_mask() instead?
+        for (int j = 0; j < 8; j++) {
+            bool bit = data_byte & 0x1 << j;
+            gpio_put(GPIO_OUT_DATA_BASE_PIN + j, bit);
+        }
+
+        #ifdef BIF_DEBUG
+            uint8_t gpio_actual = NORMALISE_OUTPUT_MASK(gpio_get_all());
+            printf("[babyif_write_data] data: %#4x, gpio: %#4x, gpio==data? %s\n", data_byte, gpio_actual, gpio_actual == data_byte ? "true" : "false");
+        #endif
+
+        // pulse write line
+        _pulse_control_line(WRITE__PTP_A);
+    }
+}
 
 #ifndef DO_NOT_USE_BIF_SM
 #error "Not implemented"
