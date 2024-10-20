@@ -118,7 +118,7 @@ void babyif_write_data(uint32_t data) {
     uint8_t data_byte = 0;
 
     for (int i = 0; i < 4; i++) {
-        data_byte = (data & (0xFF << 8 * i)) >> 8 * i;
+        data_byte = (data & (0xFF000000 >> 8 * i)) >> 8 * (3-i);
 
         // TODO: is there a way to use gpio_set_mask() instead?
         for (int j = 0; j < 8; j++) {
