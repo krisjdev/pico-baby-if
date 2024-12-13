@@ -73,11 +73,32 @@ void _pulse_control_line(control_line_t line) {
     #endif
 };
 
+uint8_t _read_pins(int base) {
+    uint8_t value = 0;
+
+    for (int i = 0; i < 8; i++) {
+        value |= gpio_get(GPIO_IN_DATA_BASE_PIN+i) << i;
+    }
+
+    return value;
+}
+
 
 #define INPUT_MASK(x) (x & 0x3fc)
 #define OUTPUT_MASK(x) (x & 0x3fc00)
 #define NORMALISE_INPUT_MASK(x) (INPUT_MASK(x) >> 2)
 #define NORMALISE_OUTPUT_MASK(x) (OUTPUT_MASK(x) >> 10)
+
+uint32_t _read_32b_word() {
+    uint32_t value = 0;
+    for (int i = 0; i < 4; i++) {
+        //                  fill topmost byte first vvvvvvvv
+        value += _read_pins(GPIO_IN_DATA_BASE_PIN) << 8 * (3-i);
+        _pulse_control_line(READ__PTP_B);
+    }
+
+    return value;
+}
 
 read_packet babyif_read_data() {
     read_packet packet;
@@ -90,21 +111,10 @@ read_packet babyif_read_data() {
     //                               ^--------^ 0x3FC   -> input mask      
     //                     ^--------^           0x3FC00 -> output mask
 
-    uint32_t gpio_all = gpio_get_all();
-
-    packet.address = 0;
-    packet.data = 0;
-
-    for (int i = 0; i < 4; i++) {
-        packet.address = (packet.address << 8) + NORMALISE_INPUT_MASK(gpio_all);
-        _pulse_control_line(READ__PTP_B);
-    }
-
-
-    for (int i = 0; i < 4; i++) {
-        packet.data = (packet.data << 8) + NORMALISE_INPUT_MASK(gpio_all);
-        _pulse_control_line(READ__PTP_B);
-    }
+    // NOTE: the masking seems to be incorrect? replaced with _read_32b_word() for now
+    // TODO: fix masks?
+    packet.address = _read_32b_word();
+    packet.data = _read_32b_word();
 
     #ifdef BIF_DEBUG
         printf("[babyif_read_data] returning: address: %#10x, data: %#10x\n", packet.address, packet.data);

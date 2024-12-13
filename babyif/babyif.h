@@ -22,7 +22,8 @@ read_packet babyif_read_data();
 void babyif_write_data(uint32_t data);
 
 void _pulse_control_line(control_line_t line);
-
+uint8_t _read_pins(int base);
+uint32_t _read_32b_word();
 
 #ifndef DO_NOT_USE_BIF_SM
 #error "Not implemented"
