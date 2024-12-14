@@ -26,7 +26,8 @@ void dump_memory_contents() {
 }
 
 int main()
- {
+{
+start:
     stdio_init_all();
 
     babyif_init_gpio();
@@ -34,9 +35,10 @@ int main()
     gpio_set_dir(PICO_DEFAULT_LED_PIN, true);
 
     // inital state
-    uint8_t tick = 0;
+    uint8_t tick = 1;
     read_packet packet;
     uint32_t data_tx = program[0];
+    gpio_put(PICO_DEFAULT_LED_PIN, false);
 
     // set reset lines and clock twice
     gpio_put(GPIO_OUT_RESET_N, false);
@@ -47,10 +49,14 @@ int main()
     gpio_put(GPIO_OUT_RESET_N, true);
     gpio_put(GPIO_OUT_PTP_RESET_N, true);
 
+    // present data to pins (exit reset state)
+    // this has to be done to avoid reading a 0 on the first go
+    _pulse_control_line(READ__PTP_B);
+
+    printf("[main] ready\n");
 
     while(true) {
         gpio_put(PICO_DEFAULT_LED_PIN, true);
-        printf("[main] (estimated) tick: %d\n", tick);
 
         babyif_write_data(data_tx);
         babyif_pulse_clock(1);
@@ -63,30 +69,35 @@ int main()
             break;
         }
 
+        // show data to baby
         _pulse_control_line(WRITE__PTP_A);
 
         packet = babyif_read_data();
 
+        printf("[main] packet.addr = %#x, packet.data = %#x\n", packet.address, packet.data);
+
         // TODO: might be better to provide helper functions to access memory?
         // accessing out of bounds memory
         if (packet.address > PROGRAM_SIZE) {
-            printf("[main] fatal: manchester baby attempted to access out of bounds memory: packet.address=%#10x, PROGRAM_SIZE=%i", packet.address, PROGRAM_SIZE);
-            return -1;
+            printf("[main] fatal: attempted to access out of bounds memory: \n\tpacket.address=%#10x\n\tPROGRAM_SIZE=%i\n", packet.address, PROGRAM_SIZE);
+            sleep_ms(200);
+            goto start;
         }
-
         if (rw_intent == BABY_READ_INTENT) {
             data_tx = program[packet.address];
             printf("[main] read: progam[%#x] = %#x\n", packet.address, data_tx);
         } else if (rw_intent == BABY_WRITE_INTENT) {
             program[packet.address] = packet.data;
             printf("[main] write: progam[%#x] = %#x\n", packet.address, packet.data);
+        } else {
+            printf("[main] unable to determine read/write intent\n");
+            return -1;
         }
 
-        sleep_ms(800);
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
 
     printf("[main] broken out of program loop\n");
     dump_memory_contents();
-    sleep_ms(1LL << 32 - 1);
+    return -1;
 }
