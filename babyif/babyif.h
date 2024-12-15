@@ -8,7 +8,7 @@
 typedef struct {
     uint32_t address;
     uint32_t data;
-} read_packet;
+} read_packet_t;
 
 typedef enum {
     READ__PTP_B = GPIO_OUT_PTP_B_PULSE,
@@ -18,7 +18,7 @@ typedef enum {
 
 void babyif_init_gpio();
 void babyif_pulse_clock(uint32_t cycles);
-read_packet babyif_read_data();
+read_packet_t babyif_read_data();
 void babyif_write_data(uint32_t data);
 
 void _pulse_control_line(control_line_t line);

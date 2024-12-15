@@ -36,7 +36,7 @@ start:
 
     // inital state
     uint8_t tick = 1;
-    read_packet packet;
+    read_packet_t packet;
     uint32_t data_tx = program[0];
     gpio_put(PICO_DEFAULT_LED_PIN, false);
 

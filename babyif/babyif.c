@@ -100,8 +100,8 @@ uint32_t _read_32b_word() {
     return value;
 }
 
-read_packet babyif_read_data() {
-    read_packet packet;
+read_packet_t babyif_read_data() {
+    read_packet_t packet;
 
     // NOTE: reset modules on each read? shouldn't affect the data...
     // for now we'll assume it has been previously reset and is in a good state
