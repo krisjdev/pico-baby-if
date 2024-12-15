@@ -3,7 +3,7 @@
 #include "babyif.h"
 #include "pindefs.h"
 
-#define CLOCK_PERIOD_MS 50
+#define CLOCK_PERIOD_MS 2
 
 void babyif_init_gpio() {
     gpio_init(GPIO_OUT_PTP_A_PULSE);

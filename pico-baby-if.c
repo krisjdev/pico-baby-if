@@ -74,7 +74,7 @@ start:
 
         packet = babyif_read_data();
 
-        printf("[main] packet.addr = %#x, packet.data = %#x\n", packet.address, packet.data);
+        // printf("[main] packet.addr = %#x, packet.data = %#x\n", packet.address, packet.data);
 
         // TODO: might be better to provide helper functions to access memory?
         // accessing out of bounds memory
