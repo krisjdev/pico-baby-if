@@ -77,9 +77,10 @@ start:
         // printf("[main] packet.addr = %#x, packet.data = %#x\n", packet.address, packet.data);
 
         // TODO: might be better to provide helper functions to access memory?
-        // accessing out of bounds memory
+        // if accessing out of bounds memory
         if (packet.address > PROGRAM_SIZE) {
             printf("[main] fatal: attempted to access out of bounds memory: \n\tpacket.address=%#10x\n\tPROGRAM_SIZE=%i\n", packet.address, PROGRAM_SIZE);
+            prtinf("[main] restarting soon...\n");
             sleep_ms(200);
             goto start;
         }
