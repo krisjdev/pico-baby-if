@@ -7,10 +7,6 @@
 #include "pindefs.h"
 #include "program.c"
 
-int inline update_tick(int current_tick) {
-    return (current_tick + 1) % 8;
-}
-
 void dump_memory_contents() {
     printf("[dump_memory_contents] memory dump:\n");
 
@@ -59,7 +55,7 @@ start:
     gpio_set_dir(PICO_DEFAULT_LED_PIN, true);
 
     // inital state
-    uint8_t tick = 0;
+    uint32_t total_ticks = 0;
     read_packet_t packet;
     uint32_t data_tx = program[0];
     gpio_put(PICO_DEFAULT_LED_PIN, false);
@@ -115,9 +111,10 @@ start:
             goto start;
         }
 
-        printf("\ntick: %d\n", tick);
+        uint8_t tick = total_ticks % 8;
+        printf("\ntick: %d (total: %d)\n", tick, total_ticks);
         printf("PC: %#10x, IR: %#10x, ACC: %#10x\n", packet.pc, packet.ir, packet.acc);
-        tick = update_tick(tick);
+        total_ticks++;
 
 
         if (rw_intent == BABY_READ_INTENT) {
