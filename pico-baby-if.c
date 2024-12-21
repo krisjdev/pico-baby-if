@@ -25,6 +25,30 @@ void dump_memory_contents() {
     }
 }
 
+void draw_crt() {
+    // potential characters to use for rendering: ■ █ ● • · ▪
+
+    for (int i = 0; i < PROGRAM_SIZE; i++) {
+        // printf("%#10x | ", program[i]);
+        printf("%#4x |", i);
+
+        // TODO: replace with byte hashmap instead of having to compute it for each bit
+        // or replace with some other performant variant
+        for (int j = 0; j < 32; j++) {
+            if (program[i] & (0x1 << j)) {
+                // print 1
+                printf("■ ");
+            } else {
+                // print 0
+                printf("· ");
+            }
+        }
+        printf("| %#10x\n", program[i]);
+    }
+    
+}
+
+
 int main()
 {
 start:
@@ -35,7 +59,7 @@ start:
     gpio_set_dir(PICO_DEFAULT_LED_PIN, true);
 
     // inital state
-    uint8_t tick = 1;
+    uint8_t tick = 0;
     read_packet_t packet;
     uint32_t data_tx = program[0];
     gpio_put(PICO_DEFAULT_LED_PIN, false);
@@ -54,17 +78,24 @@ start:
     _pulse_control_line(READ__PTP_B);
 
     printf("[main] ready\n");
+    
+    // https://stackoverflow.com/questions/66927511/what-does-e-do-what-does-e11h-e2j-do
+    // clear terminal
+    printf("\e[1;1H\e[2J"); 
 
     while(true) {
+        printf("\e[1;1H"); // move cursor to top of terminal
+        draw_crt();
+
         gpio_put(PICO_DEFAULT_LED_PIN, true);
 
         babyif_write_data(data_tx);
         babyif_pulse_clock(1);
-        tick = update_tick(tick);
 
         int rw_intent = gpio_get(GPIO_IN_RW_INTENT);
 
         if (gpio_get(GPIO_IN_STOP_LAMP)) {
+            printf("\n\n\n\n"); // spam newlines to skip over other debug info
             printf("[main] stop lamp is high\n");
             break;
         }
@@ -74,24 +105,29 @@ start:
 
         packet = babyif_read_data();
 
-        // printf("[main] packet.addr = %#x, packet.data = %#x\n", packet.address, packet.data);
 
         // TODO: might be better to provide helper functions to access memory?
         // if accessing out of bounds memory
         if (packet.address > PROGRAM_SIZE) {
             printf("[main] fatal: attempted to access out of bounds memory: \n\tpacket.address=%#10x\n\tPROGRAM_SIZE=%i\n", packet.address, PROGRAM_SIZE);
-            prtinf("[main] restarting soon...\n");
+            printf("[main] restarting soon...\n");
             sleep_ms(200);
             goto start;
         }
+
+        printf("\ntick: %d\n", tick);
+        printf("PC: %#10x, IR: %#10x, ACC: %#10x\n", packet.pc, packet.ir, packet.acc);
+        tick = update_tick(tick);
+
+
         if (rw_intent == BABY_READ_INTENT) {
             data_tx = program[packet.address];
-            printf("[main] read: progam[%#x] = %#x\n", packet.address, data_tx);
+            printf("read : program[%#10x] = %#10x\n", packet.address, data_tx);
         } else if (rw_intent == BABY_WRITE_INTENT) {
             program[packet.address] = packet.data;
-            printf("[main] write: progam[%#x] = %#x\n", packet.address, packet.data);
+            printf("write: program[%#10x] = %#10x\n", packet.address, packet.data);
         } else {
-            printf("[main] unable to determine read/write intent\n");
+            printf("\n[main] unable to determine read/write intent\n");
             return -1;
         }
 
