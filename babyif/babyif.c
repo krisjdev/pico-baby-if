@@ -101,7 +101,7 @@ uint32_t _read_32b_word() {
 }
 
 read_packet_t babyif_read_data() {
-    read_packet_t packet;
+    read_packet_t packet = {0};
 
     // NOTE: reset modules on each read? shouldn't affect the data...
     // for now we'll assume it has been previously reset and is in a good state
@@ -115,6 +115,9 @@ read_packet_t babyif_read_data() {
     // TODO: fix masks?
     packet.address = _read_32b_word();
     packet.data = _read_32b_word();
+    packet.pc = _read_32b_word();
+    packet.ir = _read_32b_word();
+    packet.acc = _read_32b_word();
 
     #ifdef BIF_DEBUG
         printf("[babyif_read_data] returning: address: %#10x, data: %#10x\n", packet.address, packet.data);
