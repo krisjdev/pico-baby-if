@@ -26,7 +26,10 @@ void draw_crt() {
 
     for (int i = 0; i < PROGRAM_SIZE; i++) {
         // printf("%#10x | ", program[i]);
-        printf("%#4x |", i);
+        printf("%#4x | ", i);
+
+        // https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+        printf("\e[32m"); // set colour to green
 
         // TODO: replace with byte hashmap instead of having to compute it for each bit
         // or replace with some other performant variant
@@ -39,6 +42,8 @@ void draw_crt() {
                 printf("· ");
             }
         }
+
+        printf("\e[0m"); // reset colour
         printf("| %#10x\n", program[i]);
     }
     
