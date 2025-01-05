@@ -131,9 +131,6 @@ start:
         } else if (rw_intent == BABY_WRITE_INTENT) {
             program[packet.address] = packet.data;
             printf("write: program[%#10x] = %#10x\n", packet.address, packet.data);
-        } else {
-            printf("\n[main] unable to determine read/write intent\n");
-            return -1;
         }
 
         gpio_put(PICO_DEFAULT_LED_PIN, false);
