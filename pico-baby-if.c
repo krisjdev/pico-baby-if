@@ -24,6 +24,13 @@ void dump_memory_contents() {
 void draw_crt() {
     // potential characters to use for rendering: ■ █ ● • · ▪
 
+    const char *glyphs[16] = {
+        "· · · ·", "■ · · ·", "· ■ · ·", "■ ■ · ·",     // 0000, 0001, 0010, 0011
+        "· · ■ ·", "■ · ■ ·", "· ■ ■ ·", "■ ■ ■ ·",     // 0100, 0101, 0110, 0111
+        "· · · ■", "■ · · ■", "· ■ · ■", "■ ■ · ■",     // 1000, 1001, 1010, 1011
+        "· · ■ ■", "■ · ■ ■", "· ■ ■ ■", "■ ■ ■ ■",     // 1100, 1101, 1110, 1111
+    };
+
     for (int i = 0; i < PROGRAM_SIZE; i++) {
         // printf("%#10x | ", program[i]);
         printf("%#4x | ", i);
@@ -31,16 +38,12 @@ void draw_crt() {
         // https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
         printf("\e[32m"); // set colour to green
 
-        // TODO: replace with byte hashmap instead of having to compute it for each bit
-        // or replace with some other performant variant
-        for (int j = 0; j < 32; j++) {
-            if (program[i] & (0x1 << j)) {
-                // print 1
-                printf("■ ");
-            } else {
-                // print 0
-                printf("· ");
-            }
+        for (int j = 0; j < 8; j++) {
+            // shift mask for 4 bits then reshift whole number back into 8 bits max
+            // otherwise some values would overflow and would not access the glyphs properly
+            int glyph_index = (program[i] & (0xF << (j*4))) >> j * 4;
+            printf(glyphs[glyph_index]);
+            printf(" ");
         }
 
         printf("\e[0m"); // reset colour
