@@ -3,7 +3,7 @@
 #include "babyif.h"
 #include "pindefs.h"
 
-#define CLOCK_PERIOD_MS 2
+#define CLOCK_PERIOD_US 200
 
 void babyif_init_gpio() {
     gpio_init(GPIO_OUT_PTP_A_PULSE);
@@ -52,9 +52,9 @@ void babyif_pulse_clock(uint32_t cycles) {
 
     for (int i = 0; i < cycles; i++) {
         gpio_put(GPIO_OUT_CLOCK, true);
-        sleep_ms(CLOCK_PERIOD_MS/2);
+        sleep_us(CLOCK_PERIOD_US/2);
         gpio_put(GPIO_OUT_CLOCK, false);
-        sleep_ms(CLOCK_PERIOD_MS/2);
+        sleep_us(CLOCK_PERIOD_US/2);
 
         #ifdef BIF_DEBUG
             printf("[babyif_pulse_clock] finished pulsing clock for %ims\n", CLOCK_PERIOD_MS);
@@ -65,7 +65,7 @@ void babyif_pulse_clock(uint32_t cycles) {
 void _pulse_control_line(control_line_t line) {
 
     gpio_put(line, true);
-    sleep_ms(2);
+    sleep_us(100);
     gpio_put(line, false);
 
     #ifdef BIF_DEBUG
