@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include <malloc.h>
+#include <stdlib.h>
 
 #include "babyif.h"
 #include "pindefs.h"
@@ -19,6 +20,41 @@ void dump_memory_contents() {
                 printf("%#10x ", program[i]); 
             }
     }
+}
+
+void get_cursor_position(int* positions) {
+
+    printf("\e[6n"); // get current cursor position
+    // \e[000;000R - https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#cursor-controls
+    // assume that the x and y pos fits within 3 digits for each axis, with the last element being a null terminator
+    char xpos_str[4] = {'\0'};
+    char ypos_str[4] = {'\0'};
+    bool write_xpos_str = true;
+    int pos_str_index = 0;
+
+    while (true) {
+        char read_byte = getchar();
+        
+        if (read_byte == '\e' || read_byte == '[') continue;        
+        if (read_byte == 'R') break;
+        
+        if (read_byte == ';') {
+            write_xpos_str = false;
+            pos_str_index = 0;
+            continue;
+        }
+
+        if (write_xpos_str) {
+            xpos_str[pos_str_index] = read_byte;
+        } else {
+            ypos_str[pos_str_index] = read_byte;
+        }
+
+        pos_str_index++;
+    }
+
+    positions[0] = atoi(xpos_str);
+    positions[1] = atoi(ypos_str);
 }
 
 void draw_crt() {
