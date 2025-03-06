@@ -8,6 +8,10 @@
 #include "pindefs.h"
 #include "program.c"
 
+const int CRT_PC_POSITION = 34;
+const int CRT_IR_POSITION = 35;
+const int CRT_ACC_POSITION = 36;
+
 void dump_memory_contents() {
     printf("[dump_memory_contents] memory dump:\n");
 
@@ -87,6 +91,11 @@ void draw_crt() {
         printf("\e[0m"); // reset colour
         printf("| %#10x\n", program[i]);
     }
+
+    printf("\n");
+    printf("PC   | \n");
+    printf("IR   | \n");
+    printf("ACC  | \n");
     
 }
 
@@ -148,9 +157,12 @@ start:
     // clear terminal
     printf("\e[1;1H\e[2J"); 
     draw_crt();
+    update_crt_line(CRT_PC_POSITION, 0);
+    update_crt_line(CRT_IR_POSITION, 0);
+    update_crt_line(CRT_ACC_POSITION, 0);
 
     while(true) {
-        printf("\e[33;1H"); // move cursor to bottom of crt
+        printf("\e[38;1H"); // move cursor to bottom of crt
         sleep_ms(100);
 
         gpio_put(PICO_DEFAULT_LED_PIN, true);
@@ -184,6 +196,9 @@ start:
         uint8_t tick = total_ticks % 8;
         printf("\ntick: %d (total: %d)\n", tick, total_ticks);
         printf("PC: %#10x, IR: %#10x, ACC: %#10x\n", packet.pc, packet.ir, packet.acc);
+        update_crt_line(CRT_PC_POSITION, packet.pc);
+        update_crt_line(CRT_IR_POSITION, packet.ir);
+        update_crt_line(CRT_ACC_POSITION, packet.acc);
         total_ticks++;
 
 
