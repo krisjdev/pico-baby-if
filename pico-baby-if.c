@@ -90,6 +90,29 @@ void draw_crt() {
     
 }
 
+void update_crt_line(uint32_t pos, uint32_t value) {
+
+    int cursor_xy[2] = {0};
+    get_cursor_position(cursor_xy);
+
+    // move cursor to start of crt line for given address
+    printf("\e[%i;8H", pos);
+
+    printf("\e[32m");
+
+    // TODO: move this into a seperate function?
+    // same block as the one in draw_crt()
+    for (int j = 0; j < 8; j++) {
+        int glyph_index = (value & (0xF << (j*4))) >> j * 4;
+        printf(glyphs[glyph_index]);
+        printf(" ");
+    }
+
+    printf("\e[0m"); // reset colour
+    printf("| %#10x\n", value);
+
+    printf("\e[%i;%iH", cursor_xy[0], cursor_xy[1]);
+}
 
 int main()
 {
@@ -124,10 +147,11 @@ start:
     // https://stackoverflow.com/questions/66927511/what-does-e-do-what-does-e11h-e2j-do
     // clear terminal
     printf("\e[1;1H\e[2J"); 
+    draw_crt();
 
     while(true) {
-        printf("\e[1;1H"); // move cursor to top of terminal
-        draw_crt();
+        printf("\e[33;1H"); // move cursor to bottom of crt
+        sleep_ms(100);
 
         gpio_put(PICO_DEFAULT_LED_PIN, true);
 
@@ -168,6 +192,7 @@ start:
             printf("read : program[%#10x] = %#10x\n", packet.address, data_tx);
         } else if (rw_intent == BABY_WRITE_INTENT) {
             program[packet.address] = packet.data;
+            update_crt_line(packet.address, packet.data);
             printf("write: program[%#10x] = %#10x\n", packet.address, packet.data);
         }
 
