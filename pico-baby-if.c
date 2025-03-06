@@ -174,5 +174,6 @@ start:
 
     printf("[main] broken out of program loop\n");
     dump_memory_contents();
+    sleep_ms(1LL << 32 - 1);
     return -1;
 }
