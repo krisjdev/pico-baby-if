@@ -215,6 +215,16 @@ start:
     }
 
     printf("[main] broken out of program loop\n");
+
+    // HACK: redraw crt contents to ensure it matches memory dump at the end
+    // HACK: i+1 in pos seems to be necessary because pos 0 and pos 1 behave the same?
+    //       the offset ensures that the content matches the address
+    // this also kinda somewhat fixes issue #5, and by that i mean its a bandaid fix
+    // and doesn't solve the underlying problem
+    for (int i = 0; i < PROGRAM_SIZE; i++) {
+        update_crt_line(i+1, program[i]);
+    }
+
     dump_memory_contents();
     sleep_ms(1LL << 32 - 1);
     return -1;
