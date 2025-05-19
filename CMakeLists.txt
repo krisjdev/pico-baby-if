@@ -41,11 +41,16 @@ pico_sdk_init()
 
 add_executable(pico-baby-if pico-baby-if.c)
 
+# hack to quickly swap between real and test programs - uncomment the one above
+# TODO: need to improve this cmake to allow me to switch debug targets
+# add_executable(pico-baby-if test_interface.c) 
+
 target_sources(pico-baby-if PRIVATE babyif/babyif.c)
 
 # add_compile_definitions(BIF_DEBUG)
 add_compile_definitions(DO_NOT_USE_PIO_DATA_RECEIVER_SM)
 add_compile_definitions(DO_NOT_USE_BIF_SM)
+add_compile_definitions(BIF_USE_SERIAL_PTP)
 
 pico_set_program_name(pico-baby-if "pico-baby-if")
 pico_set_program_version(pico-baby-if "0.1")

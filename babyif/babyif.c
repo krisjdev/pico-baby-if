@@ -30,15 +30,26 @@ void babyif_init_gpio() {
     gpio_put(GPIO_OUT_CLOCK, false);
     gpio_put(GPIO_OUT_RESET_N, false);
 
-    for (int i = 0; i < 8; i++){
-        gpio_init(GPIO_IN_DATA_BASE_PIN+i);
-        gpio_init(GPIO_OUT_DATA_BASE_PIN+i);
+    #ifdef BIF_USE_SERIAL_PTP
+        // initialise only the first pins for i/o
+        gpio_init(GPIO_IN_DATA_BASE_PIN);
+        gpio_init(GPIO_OUT_DATA_BASE_PIN);
 
-        gpio_set_dir(GPIO_IN_DATA_BASE_PIN+i, GPIO_IN);
-        gpio_set_dir(GPIO_OUT_DATA_BASE_PIN+i, GPIO_OUT);
+        gpio_set_dir(GPIO_IN_DATA_BASE_PIN, GPIO_IN);
+        gpio_set_dir(GPIO_OUT_DATA_BASE_PIN, GPIO_OUT);
 
-        gpio_put(GPIO_OUT_DATA_BASE_PIN+i, false);
-    }
+        gpio_put(GPIO_OUT_DATA_BASE_PIN, false);
+    #else
+        for (int i = 0; i < 8; i++){
+            gpio_init(GPIO_IN_DATA_BASE_PIN+i);
+            gpio_init(GPIO_OUT_DATA_BASE_PIN+i);
+
+            gpio_set_dir(GPIO_IN_DATA_BASE_PIN+i, GPIO_IN);
+            gpio_set_dir(GPIO_OUT_DATA_BASE_PIN+i, GPIO_OUT);
+
+            gpio_put(GPIO_OUT_DATA_BASE_PIN+i, false);
+        }
+    #endif
 
     #ifdef BIF_DEBUG
         printf("[babyif_init_gpio] finished setting up gpio pins\n");
@@ -73,6 +84,7 @@ void _pulse_control_line(control_line_t line) {
     #endif
 };
 
+// TODO: "base" arg is unused? need to double check
 uint8_t _read_pins(int base) {
     uint8_t value = 0;
 
@@ -91,11 +103,19 @@ uint8_t _read_pins(int base) {
 
 uint32_t _read_32b_word() {
     uint32_t value = 0;
-    for (int i = 0; i < 4; i++) {
-        //                  fill topmost byte first vvvvvvvv
-        value += _read_pins(GPIO_IN_DATA_BASE_PIN) << 8 * (3-i);
-        _pulse_control_line(READ__PTP_B);
-    }
+
+    #ifdef BIF_USE_SERIAL_PTP
+        for (int i = 0; i < 32; i++) {
+            value = (value << 1) + gpio_get(GPIO_IN_DATA_BASE_PIN);
+            _pulse_control_line(READ__PTP_B);
+        }
+    #else
+        for (int i = 0; i < 4; i++) {
+            //                  fill topmost byte first vvvvvvvv
+            value += _read_pins(GPIO_IN_DATA_BASE_PIN) << 8 * (3-i);
+            _pulse_control_line(READ__PTP_B);
+        }
+    #endif
 
     return value;
 }
@@ -128,25 +148,34 @@ read_packet_t babyif_read_data() {
 
 
 void babyif_write_data(uint32_t data) {
-    uint8_t data_byte = 0;
 
-    for (int i = 0; i < 4; i++) {
-        data_byte = (data & (0xFF000000 >> 8 * i)) >> 8 * (3-i);
-
-        // TODO: is there a way to use gpio_set_mask() instead?
-        for (int j = 0; j < 8; j++) {
-            bool bit = data_byte & 0x1 << j;
-            gpio_put(GPIO_OUT_DATA_BASE_PIN + j, bit);
+    #ifdef BIF_USE_SERIAL_PTP
+        for (int i = 0; i < 32; i++) {
+            bool bit = (data & (0x80000000 >> i)) >> 31-i;
+            gpio_put(GPIO_OUT_DATA_BASE_PIN, bit);
+            _pulse_control_line(WRITE__PTP_A);
         }
+    #else
+        uint8_t data_byte = 0;
 
-        #ifdef BIF_DEBUG
-            uint8_t gpio_actual = NORMALISE_OUTPUT_MASK(gpio_get_all());
-            printf("[babyif_write_data] data: %#4x, gpio: %#4x, gpio==data? %s\n", data_byte, gpio_actual, gpio_actual == data_byte ? "true" : "false");
-        #endif
+        for (int i = 0; i < 4; i++) {
+            data_byte = (data & (0xFF000000 >> 8 * i)) >> 8 * (3-i);
 
-        // pulse write line
-        _pulse_control_line(WRITE__PTP_A);
-    }
+            // TODO: is there a way to use gpio_set_mask() instead?
+            for (int j = 0; j < 8; j++) {
+                bool bit = data_byte & 0x1 << j;
+                gpio_put(GPIO_OUT_DATA_BASE_PIN + j, bit);
+            }
+
+            #ifdef BIF_DEBUG
+                uint8_t gpio_actual = NORMALISE_OUTPUT_MASK(gpio_get_all());
+                printf("[babyif_write_data] data: %#4x, gpio: %#4x, gpio==data? %s\n", data_byte, gpio_actual, gpio_actual == data_byte ? "true" : "false");
+            #endif
+
+            // pulse write line
+            _pulse_control_line(WRITE__PTP_A);
+        }
+    #endif
 }
 
 #ifndef DO_NOT_USE_BIF_SM

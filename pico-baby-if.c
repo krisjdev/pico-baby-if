@@ -163,7 +163,7 @@ start:
 
     while(true) {
         printf("\e[38;1H"); // move cursor to bottom of crt
-        sleep_ms(100);
+        sleep_ms(10);
 
         gpio_put(PICO_DEFAULT_LED_PIN, true);
 
