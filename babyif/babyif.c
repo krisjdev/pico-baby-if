@@ -34,11 +34,17 @@ void babyif_init_gpio() {
         // initialise only the first pins for i/o
         gpio_init(GPIO_IN_DATA_BASE_PIN);
         gpio_init(GPIO_OUT_DATA_BASE_PIN);
+        gpio_init(GPIO_OUT_PTP_FORCE_DEBUG);
+        gpio_init(GPIO_OUT_PTP_SERIALISE);
 
         gpio_set_dir(GPIO_IN_DATA_BASE_PIN, GPIO_IN);
         gpio_set_dir(GPIO_OUT_DATA_BASE_PIN, GPIO_OUT);
+        gpio_set_dir(GPIO_OUT_PTP_FORCE_DEBUG, GPIO_OUT);
+        gpio_set_dir(GPIO_OUT_PTP_SERIALISE, GPIO_OUT);
 
         gpio_put(GPIO_OUT_DATA_BASE_PIN, false);
+        gpio_put(GPIO_OUT_PTP_FORCE_DEBUG, false);
+        gpio_put(GPIO_OUT_PTP_SERIALISE, true);
     #else
         for (int i = 0; i < 8; i++){
             gpio_init(GPIO_IN_DATA_BASE_PIN+i);
@@ -177,6 +183,49 @@ void babyif_write_data(uint32_t data) {
         }
     #endif
 }
+
+#ifdef BIF_USE_SERIAL_PTP
+bool babyif_test_comms() {
+    /*
+    Tests whether the correct magic values are sent over the wire.
+
+    Requires the following settings/pins:
+        - GPIO_OUT_PTP_FORCE_DEBUG must be HIGH
+        - GPIO_OUT_PTP_SERIALISE must be HIGH
+        - GPIO_OUT_PTP_RESET_N must be HIGH
+
+    Returns:
+        True if there is an issue, false otherwise.
+    */
+    bool comm_issue_present = false;
+    read_packet_t packet = babyif_read_data();
+
+    if (packet.address != 0xDEADBEEF) {
+        comm_issue_present = true;
+        printf("[babyif_test_comms] first packet magic value mismatch");
+        printf(" - %#10x != 0xDEADBEEF\n", packet.address);
+    }
+
+    if (packet.data != 0xCAFEB0BA) {
+        comm_issue_present = true;
+        printf("[babyif_test_comms] second packet magic value mismatch");
+        printf(" - %#10x != 0xCAFEB0BA\n", packet.data);
+    }
+
+    uint32_t magic_value = 0xBAADF00D;
+    babyif_write_data(magic_value);
+    _pulse_control_line(WRITE__PTP_A);
+    packet = babyif_read_data();
+
+    if (packet.pc != magic_value) {
+        comm_issue_present = true;
+        printf("[babyif_test_comms] third packet magic value read/write error");
+        printf(" - %#10x != %#10x\n", packet.pc, magic_value);
+    }
+
+    return comm_issue_present;
+}
+#endif
 
 #ifndef DO_NOT_USE_BIF_SM
 #error "Not implemented"
