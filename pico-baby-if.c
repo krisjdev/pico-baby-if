@@ -146,10 +146,26 @@ start:
     // exit reset state
     gpio_put(GPIO_OUT_RESET_N, true);
     gpio_put(GPIO_OUT_PTP_RESET_N, true);
+    gpio_put(GPIO_OUT_PTP_FORCE_DEBUG, true);
 
     // present data to pins (exit reset state)
     // this has to be done to avoid reading a 0 on the first go
     _pulse_control_line(READ__PTP_B);
+
+    bool issue = babyif_test_comms();
+    if (issue) {
+        printf("[self-check] comms test reported issue, stopping.\n");
+        goto end;
+    } else {
+        printf("[self-check] comms ok\n");
+        // reset state
+        // without this, the address would return as something out of bounds
+        gpio_put(GPIO_OUT_PTP_FORCE_DEBUG, false);
+        gpio_put(GPIO_OUT_PTP_RESET_N, false);
+        sleep_ms(1);
+        gpio_put(GPIO_OUT_PTP_RESET_N, true);
+        _pulse_control_line(READ__PTP_B);
+    }
 
     printf("[main] ready\n");
     
@@ -226,6 +242,7 @@ start:
     }
 
     dump_memory_contents();
+end:
     sleep_ms(1LL << 32 - 1);
     return -1;
 }
