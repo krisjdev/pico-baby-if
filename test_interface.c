@@ -20,16 +20,12 @@ start:
     // inital state
     uint32_t total_ticks = 0;
     read_packet_t packet;
-    uint32_t data_tx = program[0];
     gpio_put(PICO_DEFAULT_LED_PIN, false);
+    gpio_put(GPIO_OUT_PTP_FORCE_DEBUG, true);
+    gpio_put(GPIO_OUT_PTP_SERIALISE, true);
 
-    // set reset lines and clock twice
-    gpio_put(GPIO_OUT_RESET_N, false);
     gpio_put(GPIO_OUT_PTP_RESET_N, false);
-    babyif_pulse_clock(2);
-
-    // exit reset state
-    gpio_put(GPIO_OUT_RESET_N, true);
+    sleep_ms(10);
     gpio_put(GPIO_OUT_PTP_RESET_N, true);
 
     // present data to pins (exit reset state)
@@ -39,19 +35,22 @@ start:
     printf("\e[1;1H\e[2J"); 
     printf("[test] ready\n");
 
+    bool status = babyif_test_comms();
+    printf("[self-check] status: %s\n", status ? "comm error present" : "no comm error");
+
     // fetch data, first two entries should match magic values
     packet = babyif_read_data();
 
     if (packet.address != 0xDEADBEEF) {
         printf("[test - read] first packet magic value was incorrect - %#10x != 0xDEADBEEF\n", packet.address);
     } else {
-        printf("[test - read] first packet magic value matched\n");
+        printf("[test - read] first packet magic value matched (0xDEADBEEF)\n");
     }
 
     if (packet.data != 0xCAFEB0BA) {
         printf("[test - read] second packet magic value was incorrect - %#10x != 0xCAFEB0BA\n", packet.data);
     } else {
-        printf("[test - read] second packet magic value matched\n");
+        printf("[test - read] second packet magic value matched (0xCAFEB0BA)\n");
     }
 
 
@@ -71,8 +70,14 @@ start:
     if (packet.pc != magic_value) {
         printf("[test - write] magic value was not written properly - %#10x != %#10x\n", packet.pc, magic_value);
     } else {
-        printf("[test - write] magic value was written properly and matches");
+        printf("[test - write] magic value was written properly and matches\n");
     }
+
+    printf("%#10x\n", packet.address);
+    printf("%#10x\n", packet.data);
+    printf("%#10x\n", packet.pc);
+    printf("%#10x\n", packet.ir);
+    printf("%#10x\n", packet.acc);
 
     sleep_ms(1LL << 32 - 1);
     return -1;
